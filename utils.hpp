@@ -10,4 +10,5 @@ double *init_zeros_mat(int);
 double *init_rand_mat(int, int);
 double *init_zeros_vec(int);
 double *init_rand_vec(int, int);
+void print_mat(double *, int);
 

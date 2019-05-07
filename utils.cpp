@@ -1,6 +1,7 @@
 #include "utils.hpp"
 
 
+using namespace std;
 double time_elapsed(struct timespec &start, struct timespec &end)
 {
     double time = end.tv_sec - start.tv_sec;
@@ -46,4 +47,13 @@ double *init_rand_vec(int n, int seed)
     return A;
 }
 
+void print_mat(double *A, int n)
+{
+    for (int i=0; i<n; i++){
+        for (int j=0; j<n; j++){
+            cout << A[i] << " ";
+        }
+        cout << endl;
+    }
+}
 

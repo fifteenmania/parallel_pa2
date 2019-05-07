@@ -2,8 +2,10 @@
 #include <unistd.h>
 #include <time.h>
 #include <stdlib.h>
+#include <math.h>
+#include <algorithm>
 #include "utils.hpp"
-#define SIM_THRES = 0.001
+#define SIM_THRES 0.001
 
 using namespace std;
 
@@ -14,10 +16,11 @@ double *b, *b0 = NULL;
 // consts
 int n = 0, p = 0;
 
+/*
 inline int get_pivot(int col)
 {
     int pivot_row = col;
-    double pivot_max = abs(A[i*n+col]);
+    double pivot_max = abs(A[col*n+col]);
     for (int i=col+1; i<n; i++){
         if (fabs(A[i*n+col])>pivot_max){
             pivot_max = abs(A[i*n+col]);
@@ -25,15 +28,28 @@ inline int get_pivot(int col)
         }
     }
     return pivot_row;
+}*/
+inline void swap_vec(int i, int j)
+{
+    double temp = b[i];
+    b[i] = b[j];
+    b[j] = temp;
 }
 
 void GE_single()
 {
     for (int i=0; i<n-1; i++){
-        int pivot_row = get_pivot(i);
-        swap_ranges(
+        int piv = distance(A, max_element(A+i*n, A+i*n+n));
+        swap_ranges(A+i*n, A+i*n+n, A+piv*n);
+        swap_vec(i, piv);
         for (int j=i+1; j<n; j++){
-            for 
+            int a = A[j*n+i]/A[piv*n+piv];
+            for (int k=i; k<n; k++){
+                A[j*n+k] -= a*A[i*n+j];
+            }
+            b[j] -= a*b[i];
+        }
+    }
     return;
 }
 
@@ -62,19 +78,22 @@ int main(int argc, char **argv)
     n = atoi(argv[1]);
     p = atoi(argv[2]);
 
-    A = init_rand_mat(n, 1);
+    A = init_rand_mat(n, 2);
     b = init_rand_vec(n, 2);
-    
+   
+    print_mat(A, n);
     struct timespec begin, end;
     // multi thread
     clock_gettime(CLOCK_MONOTONIC, &begin);
+    GE_single();
     clock_gettime(CLOCK_MONOTONIC, &end);
     cout << "Parallel: " << time_elapsed(begin, end) << " ms" << endl;
-
+    
+    print_mat(A, n);
     // correctness
     double resid = l2_norm();
     cout << "Residual: " << resid << endl;
-    cout << "Correcct: " << resid<SIM_THRES << endl;
+    cout << "Correcct: " << (resid<SIM_THRES) << endl;
 
     return 0;
 }
