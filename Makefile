@@ -8,6 +8,8 @@ UTILS = utils.cpp utils.hpp
 
 all : P1 P2 P3
 
+all_bench : P1_bench P2 P3
+
 P1 : $(UTILS) P1.cpp
 	$(CXX) $(CFLAGS) utils.cpp P1.cpp -o P1 $(LDLIBS)
 
@@ -69,7 +71,6 @@ test19 :
 	./P3 ./matrix/shipsec1.mtx 1024
 test20 : 
 	./P3 ./matrix/webbase-1M.mtx 256
-
 
 clean : 
 	$(RM) P1 P2 P3
