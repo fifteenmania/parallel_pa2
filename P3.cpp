@@ -3,7 +3,11 @@
 #include <iostream>
 #include <sys/time.h>
 #include <unistd.h>
+#include <omp.h>
 #include "utils.hpp"
+#define NUM_THREADS 6
+
+int partition_sheet[NUM_THREADS];
 
 bool
 SCsrMatrixfromFile(struct sparse_mtx *A, const char* filePath)
@@ -107,13 +111,28 @@ void multiply_pthread(struct sparse_mtx *A, struct dense_mtx *B, struct dense_mt
 
 void multiply_openmp(struct sparse_mtx *A, struct dense_mtx *B, struct dense_mtx *C)
 {
+    uint32_t ideal_workload = A->nnze/NUM_THREADS;
+    uint32_t workload = 0;
+    int sheet_idx = 0;
+    for (uint32_t i=0; i<A->nrow; i++){
+        workload += (A->row[i+1]-A->row[i]);
+        if (workload > ideal_workload){
+             partition_sheet[sheet_idx] = i;
+             workload = 0;
+             sheet_idx += 1;
+        }
+    }
+    for (int j=sheet_idx; j<NUM_THREADS; j++){
+        partition_sheet[j] = A->nrow;
+    }
+
     C->nrow = A->nrow;
     C->ncol = B->ncol;
     C->val = (float *)malloc(C->nrow * C->ncol * sizeof(float));
-
+    
     if(C->val == NULL)
         return;
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel for num_threads(NUM_THREADS) schedule(guided)
     for(int32_t i = 0; i < (int32_t)A->nrow; i++)
     {
         int32_t A_col_start = A->row[i];
@@ -128,6 +147,16 @@ void multiply_openmp(struct sparse_mtx *A, struct dense_mtx *B, struct dense_mtx
         }
     }
 }
+
+bool mat_equal(struct dense_mtx *C1, struct dense_mtx *C2)
+{
+    for (uint32_t i=0; i<C1->nrow*C1->ncol; i++){
+        if (C1->val[i] != C2->val[i])
+            return false;
+    }
+    return true;
+}
+
 
 uint64_t GetTimeStamp() {
     struct timeval tv;
@@ -190,6 +219,8 @@ int main(int argc, char **argv)
     std::cout << "OpenMP Computation End: " << time_elapsed(start, end) << " ms." << std::endl << std::endl;
 
     // TODO: Testing Code by comparing C1 and C2
+
+    std::cout << "correctness : " << mat_equal(&C1, &C2) << std::endl;
 
     free(A.row);
     free(A.col);

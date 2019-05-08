@@ -61,9 +61,10 @@ void GE_omp()
         int piv = get_pivot(i);
         swap_ranges(A+i*n, A+i*n+n, A+piv*n);
         swap_vec(i, piv);
+        double piv_val = A[i*n+i];
         #pragma omp parallel for num_threads(p)
         for (int j=i+1; j<n; j++){
-            double ratio = A[j*n+i]/A[i*n+i];
+            double ratio = A[j*n+i]/piv_val;
             for (int k=i; k<n; k++){
                 A[j*n+k] -= ratio*A[i*n+k];
             }
@@ -136,7 +137,7 @@ int main(int argc, char **argv)
     struct timespec begin, end;
     // multi thread
     clock_gettime(CLOCK_MONOTONIC, &begin);
-    GE_omp();
+    GE_single();
     
     backsub();
     clock_gettime(CLOCK_MONOTONIC, &end);
