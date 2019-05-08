@@ -86,7 +86,6 @@ void multiply_single(struct sparse_mtx *A, struct dense_mtx *B, struct dense_mtx
 
     if(C->val == NULL)
         return;
-    // TODO: Implement matrix multiplication with single thread. C=A*B
     for(int32_t i = 0; i < (int32_t)A->nrow; i++)
     {
         int32_t A_col_start = A->row[i];
@@ -108,7 +107,26 @@ void multiply_pthread(struct sparse_mtx *A, struct dense_mtx *B, struct dense_mt
 
 void multiply_openmp(struct sparse_mtx *A, struct dense_mtx *B, struct dense_mtx *C)
 {
-    // TODO: Implement matrix multiplication with openmp. C=A*B
+    C->nrow = A->nrow;
+    C->ncol = B->ncol;
+    C->val = (float *)malloc(C->nrow * C->ncol * sizeof(float));
+
+    if(C->val == NULL)
+        return;
+    #pragma omp parallel for schedule(dynamic)
+    for(int32_t i = 0; i < (int32_t)A->nrow; i++)
+    {
+        int32_t A_col_start = A->row[i];
+        int32_t A_col_stop = A->row[i + 1];
+        
+        for(int32_t j = A_col_start; j < A_col_stop; j++)
+        {
+            int32_t B_row = A->col[j];
+
+            for(int32_t k = 0; k < (int32_t)B->ncol; k++)
+                C->val[i * C->ncol + k] += A->val[j] * B->val[B_row * B->ncol + k];
+        }
+    }
 }
 
 uint64_t GetTimeStamp() {
@@ -157,7 +175,7 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_MONOTONIC, &start);
     multiply_single(&A, &B, &C1);
     clock_gettime(CLOCK_MONOTONIC, &end);
-    std::cout << "Single Thread Computation End: " << time_elapsed(start, end)  << " s." << std::endl;
+    std::cout << "Single Thread Computation End: " << time_elapsed(start, end)  << " ms." << std::endl;
     /*
     std::cout << "Pthread Computation Start" << std::endl;
     start = GetTimeStamp();
@@ -169,7 +187,7 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_MONOTONIC, &start);
     multiply_openmp(&A, &B, &C2);
     clock_gettime(CLOCK_MONOTONIC, &end);
-    std::cout << "OpenMP Computation End: " << time_elapsed(start, end) << " s." << std::endl << std::endl;
+    std::cout << "OpenMP Computation End: " << time_elapsed(start, end) << " ms." << std::endl << std::endl;
 
     // TODO: Testing Code by comparing C1 and C2
 

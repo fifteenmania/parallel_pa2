@@ -5,30 +5,32 @@
 #include <math.h>
 #include <algorithm>
 #include "utils.hpp"
-#define SIM_THRES 0.001
+#define SIM_THRES 0.000001
+#define SINGLE_SECTION 32
 
 using namespace std;
 
 // random matries
 double *A, *A0 = NULL;
 // results
-double *b, *b0 = NULL;
+double *b, *c, *b0 = NULL;
 // consts
 int n = 0, p = 0;
 
-/*
+
 inline int get_pivot(int col)
 {
     int pivot_row = col;
-    double pivot_max = abs(A[col*n+col]);
+    double pivot_max = fabs(A[col*n+col]);
     for (int i=col+1; i<n; i++){
         if (fabs(A[i*n+col])>pivot_max){
-            pivot_max = abs(A[i*n+col]);
+            pivot_max = fabs(A[i*n+col]);
             pivot_row = i;
         }
     }
     return pivot_row;
-}*/
+}
+
 inline void swap_vec(int i, int j)
 {
     double temp = b[i];
@@ -39,15 +41,15 @@ inline void swap_vec(int i, int j)
 void GE_single()
 {
     for (int i=0; i<n-1; i++){
-        int piv = distance(A, max_element(A+i*n, A+i*n+n));
+        int piv = get_pivot(i);
         swap_ranges(A+i*n, A+i*n+n, A+piv*n);
         swap_vec(i, piv);
         for (int j=i+1; j<n; j++){
-            int a = A[j*n+i]/A[piv*n+piv];
+            double ratio = A[j*n+i]/A[i*n+i];
             for (int k=i; k<n; k++){
-                A[j*n+k] -= a*A[i*n+j];
+                A[j*n+k] -= ratio*A[i*n+k];
             }
-            b[j] -= a*b[i];
+            b[j] -= ratio*b[i];
         }
     }
     return;
@@ -55,18 +57,65 @@ void GE_single()
 
 void GE_omp()
 {
+    for (int i=0; i<n-1-SINGLE_SECTION; i++){
+        int piv = get_pivot(i);
+        swap_ranges(A+i*n, A+i*n+n, A+piv*n);
+        swap_vec(i, piv);
+        #pragma omp parallel for num_threads(p)
+        for (int j=i+1; j<n; j++){
+            double ratio = A[j*n+i]/A[i*n+i];
+            for (int k=i; k<n; k++){
+                A[j*n+k] -= ratio*A[i*n+k];
+            }
+            b[j] -= ratio*b[i];
+        }
+    }
+    // Small sections are calculated with a single thread 
+    // to prevent false sharing.
+    for (int i=n-1-SINGLE_SECTION; i<n-1; i++){
+        int piv = get_pivot(i);
+        swap_ranges(A+i*n, A+i*n+n, A+piv*n);
+        swap_vec(i, piv);
+        for (int j=i+1; j<n; j++){
+            double ratio = A[j*n+i]/A[i*n+i];
+            for (int k=i; k<n; k++){
+                A[j*n+k] -= ratio*A[i*n+k];
+            }
+            b[j] -= ratio*b[i];
+        }
+    }
     return;
 }
 
 void backsub()
 {
+    for (int i=n-1; i>=0; i--){
+        double ratio = b[i]/A[i*n+i];
+        b[i] = ratio;
+        for (int j=0; j<i; j++){
+            b[j] -= ratio*A[j*n+i];
+        }
+    }
     return;
+}
+
+void vmult()
+{
+    for (int i=0; i<n; i++){
+        for (int j=0; j<n; j++){
+            c[i] += A0[i*n+j] * b[j];
+        }
+    }
 }
 
 double l2_norm()
 {
-
-    return 0;
+    double residual_sum = 0;
+    for (int i=0; i<n; i++){
+        double residual = c[i] - b0[i];
+        residual_sum += residual * residual;
+    }
+    return sqrt(residual_sum/n/n);
 }
 
 int main(int argc, char **argv)
@@ -78,18 +127,23 @@ int main(int argc, char **argv)
     n = atoi(argv[1]);
     p = atoi(argv[2]);
 
-    A = init_rand_mat(n, 2);
+    A = init_rand_mat(n, 1);
+    A0 = cp_mat(A, n);
     b = init_rand_vec(n, 2);
+    b0 = cp_vec(b, n);
+    c = init_zeros_vec(n);
    
-    print_mat(A, n);
     struct timespec begin, end;
     // multi thread
     clock_gettime(CLOCK_MONOTONIC, &begin);
     GE_single();
+    
+    backsub();
     clock_gettime(CLOCK_MONOTONIC, &end);
     cout << "Parallel: " << time_elapsed(begin, end) << " ms" << endl;
     
-    print_mat(A, n);
+    // c = Ab
+    vmult();
     // correctness
     double resid = l2_norm();
     cout << "Residual: " << resid << endl;
@@ -97,4 +151,5 @@ int main(int argc, char **argv)
 
     return 0;
 }
+
 

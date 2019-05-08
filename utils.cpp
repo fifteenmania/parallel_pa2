@@ -47,13 +47,40 @@ double *init_rand_vec(int n, int seed)
     return A;
 }
 
+
+double *cp_mat(double *A, int n)
+{
+    double *B = (double *)malloc(n*n*sizeof(double));
+    memcpy(B, A, n*n*sizeof(double));
+    return B;
+}
+
+double *cp_vec(double *A, int n)
+{
+    double *B = (double *)malloc(n*sizeof(double));
+    memcpy(B, A, n*sizeof(double));
+    return B;
+}
+
+
 void print_mat(double *A, int n)
 {
+    cout << setprecision(3) << fixed;
     for (int i=0; i<n; i++){
         for (int j=0; j<n; j++){
-            cout << A[i] << " ";
+            cout << A[i*n+j] << " ";
         }
         cout << endl;
     }
+    cout << endl;
+}
+
+void print_vec(double *A, int n)
+{
+    cout << setprecision(3) << fixed;
+    for (int i=0; i<n; i++){
+        cout << A[i] << endl;
+    }
+    cout << endl;
 }
 
