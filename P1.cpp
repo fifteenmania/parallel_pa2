@@ -61,11 +61,13 @@ int main(int argc, char **argv)
     
     struct timespec begin, end;
     // single thread
+#ifndef BENCH
     clock_gettime(CLOCK_MONOTONIC, &begin);
     multiply_single();
     clock_gettime(CLOCK_MONOTONIC, &end);
     cout << "Single:   " << time_elapsed(begin, end) << " ms" << endl;
-    
+#endif
+
     // multi thread
     //
     clock_gettime(CLOCK_MONOTONIC, &begin);
@@ -73,9 +75,10 @@ int main(int argc, char **argv)
     clock_gettime(CLOCK_MONOTONIC, &end);
     cout << "Parallel: " << time_elapsed(begin, end) << " ms" << endl;
 
+#ifndef BENCH
     // correctness
     cout << "Correct:  " << mat_equal() << endl;
-
+#endif
     return 0;
 }
 
