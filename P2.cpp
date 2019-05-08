@@ -6,7 +6,7 @@
 #include <algorithm>
 #include "utils.hpp"
 #define SIM_THRES 0.000001
-#define SINGLE_SECTION 32
+#define SINGLE_SECTION 64
 
 using namespace std;
 
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
     struct timespec begin, end;
     // multi thread
     clock_gettime(CLOCK_MONOTONIC, &begin);
-    GE_single();
+    GE_omp();
     
     backsub();
     clock_gettime(CLOCK_MONOTONIC, &end);
