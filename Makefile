@@ -22,6 +22,7 @@ P3 : mmreader.hpp mmreader.cpp $(UTILS) P3.cpp
 P1_bench : $(UTILS) P1.cpp
 	$(CXX) -DBENCH=1 $(CFLAGS) utils.cpp P1.cpp -o P1 $(LDLIBS)
 
+test_all : testset1 testset2 testset3 testset4
 
 testset1 : test1 test2 test3 test4 test5
 
